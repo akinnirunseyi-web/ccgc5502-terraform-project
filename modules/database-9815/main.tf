@@ -11,19 +11,3 @@ resource "azurerm_postgresql_flexible_server" "postgres" {
   version                = "14"
   tags                   = var.tags
 }
-
-# PostgreSQL Database
-resource "azurerm_postgresql_flexible_server_database" "appdb" {
-  name       = var.database_name
-  server_id  = azurerm_postgresql_flexible_server.postgres.id
-  charset    = "UTF8"
-  collation  = "en_US.utf8"
-}
-
-# Allow Azure Services Firewall Rule
-resource "azurerm_postgresql_flexible_server_firewall_rule" "allow_azure" {
-  name             = "AllowAzureServices"
-  server_id        = azurerm_postgresql_flexible_server.postgres.id
-  start_ip_address = "0.0.0.0"
-  end_ip_address   = "0.0.0.0"
-}

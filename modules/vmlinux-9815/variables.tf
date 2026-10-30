@@ -56,3 +56,8 @@ variable "tags" {
   description = "Tags to apply to resources"
   type        = map(string)
 }
+
+variable "boot_diagnostics_storage_uri" {
+  description = "Blob endpoint of the common storage account for VM boot diagnostics"
+  type        = string
+}

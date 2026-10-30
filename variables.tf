@@ -12,6 +12,12 @@ variable "location" {
   default     = "indiasouthcentral"
 }
 
+variable "db_location" {
+  description = "Location for PostgreSQL database"
+  type        = string
+  default     = "canadacentral"
+}
+
 # Environment
 variable "environment_suffix" {
   description = "Suffix for resource names to ensure uniqueness"

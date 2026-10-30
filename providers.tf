@@ -4,6 +4,10 @@ terraform {
       source  = "hashicorp/azurerm"
       version = "~> 3.0"
     }
+    null = {
+      source  = "hashicorp/null"
+      version = "~> 3.2"
+    }
   }
   required_version = ">= 1.0"
 }
@@ -11,12 +15,15 @@ terraform {
 provider "azurerm" {
   features {
     virtual_machine {
-      delete_os_disk_on_deletion            = true
-      graceful_shutdown                      = false
-      skip_shutdown_and_force_delete         = false
+      delete_os_disk_on_deletion     = true
+      graceful_shutdown              = false
+      skip_shutdown_and_force_delete = false
     }
     key_vault {
       purge_soft_delete_on_destroy = true
+    }
+    resource_group {
+      prevent_deletion_if_contains_resources = false
     }
   }
 

@@ -1,19 +1,29 @@
-# Availability Set for Linux VMs
-resource "azurerm_availability_set" "linux_avset" {
-  name                        = "9815-linux-avset"
-  location                    = var.location
-  resource_group_name         = var.resource_group_name
-  platform_fault_domain_count = 2
-  tags                        = var.tags
-}
-
-# Local variables for VM names using for_each
+# Local variables for VM names and zones (for_each keys)
 locals {
   linux_vm_names = {
     vm1 = "9815-linux-vm1"
     vm2 = "9815-linux-vm2"
     vm3 = "9815-linux-vm3"
   }
+
+  linux_vm_zones = {
+    vm1 = "1"
+    vm2 = "2"
+    vm3 = "3"
+  }
+}
+
+# Public IPs for Linux VMs (each in the same zone as its VM)
+resource "azurerm_public_ip" "linux_pip" {
+  for_each            = local.linux_vm_names
+  name                = "${each.value}-pip"
+  location            = var.location
+  resource_group_name = var.resource_group_name
+  allocation_method   = "Static"
+  sku                 = "Standard"
+  zones               = [local.linux_vm_zones[each.key]]
+  domain_name_label   = "linux${each.key}9815"
+  tags                = var.tags
 }
 
 # Network Interfaces for Linux VMs
@@ -33,33 +43,14 @@ resource "azurerm_network_interface" "linux_nic" {
   tags = var.tags
 }
 
-# Associate NSG with Linux NICs
-resource "azurerm_network_interface_security_group_association" "linux_nsg_assoc" {
-  for_each                  = local.linux_vm_names
-  network_interface_id      = azurerm_network_interface.linux_nic[each.key].id
-  network_security_group_id = var.nsg_id
-}
-
-# Public IPs for Linux VMs
-resource "azurerm_public_ip" "linux_pip" {
-  for_each            = local.linux_vm_names
-  name                = "${each.value}-pip"
-  location            = var.location
-  resource_group_name = var.resource_group_name
-  allocation_method   = "Static"
-  domain_name_label   = "9815-${each.key}"
-  tags                = var.tags
-}
-
-# Linux Virtual Machines (CentOS 8.2)
+# Linux Virtual Machines (Ubuntu 24.04 LTS Gen2), one per availability zone
 resource "azurerm_linux_virtual_machine" "linux_vm" {
   for_each            = local.linux_vm_names
   name                = each.value
   location            = var.location
   resource_group_name = var.resource_group_name
   size                = var.vm_size
-
-  availability_set_id = azurerm_availability_set.linux_avset.id
+  zone                = local.linux_vm_zones[each.key]
 
   admin_username = var.admin_username
 
@@ -78,50 +69,39 @@ resource "azurerm_linux_virtual_machine" "linux_vm" {
   }
 
   source_image_reference {
-    publisher = "OpenLogic"
-    offer     = "CentOS"
-    sku       = "8_2-gen2"
+    publisher = "Canonical"
+    offer     = "ubuntu-24_04-lts"
+    sku       = "server"
     version   = "latest"
   }
 
-  tags = var.tags
-
-  provisioner "remote-exec" {
-    inline = [
-      "whoami",
-      "hostname",
-      "date"
-    ]
-
-    connection {
-      type        = "ssh"
-      user        = var.admin_username
-      private_key = file(replace(var.public_key_path, ".pub", ""))
-      host        = azurerm_public_ip.linux_pip[each.key].ip_address
-    }
+  boot_diagnostics {
+    storage_account_uri = var.boot_diagnostics_storage_uri
   }
+
+  tags = var.tags
 }
 
 # Network Watcher Agent Extension for Linux
 resource "azurerm_virtual_machine_extension" "linux_nw_agent" {
-  for_each            = local.linux_vm_names
-  name                = "NetworkWatcherAgentLinux"
-  virtual_machine_id  = azurerm_linux_virtual_machine.linux_vm[each.key].id
-  publisher           = "Microsoft.Azure.NetworkWatcher"
-  type                = "NetworkWatcherAgentLinux"
-  type_handler_version = "1.4"
+  for_each                   = local.linux_vm_names
+  name                       = "NetworkWatcherAgentLinux"
+  virtual_machine_id         = azurerm_linux_virtual_machine.linux_vm[each.key].id
+  publisher                  = "Microsoft.Azure.NetworkWatcher"
+  type                       = "NetworkWatcherAgentLinux"
+  type_handler_version       = "1.4"
   auto_upgrade_minor_version = true
-  tags                = var.tags
+  tags                       = var.tags
 }
 
 # Azure Monitor Agent Extension for Linux
 resource "azurerm_virtual_machine_extension" "linux_monitor_agent" {
-  for_each            = local.linux_vm_names
-  name                = "AzureMonitorLinuxAgent"
-  virtual_machine_id  = azurerm_linux_virtual_machine.linux_vm[each.key].id
-  publisher           = "Microsoft.Azure.Monitor"
-  type                = "AzureMonitorLinuxAgent"
-  type_handler_version = "1.0"
+  for_each                   = local.linux_vm_names
+  name                       = "AzureMonitorLinuxAgent"
+  virtual_machine_id         = azurerm_linux_virtual_machine.linux_vm[each.key].id
+  publisher                  = "Microsoft.Azure.Monitor"
+  type                       = "AzureMonitorLinuxAgent"
+  type_handler_version       = "1.0"
   auto_upgrade_minor_version = true
-  tags                = var.tags
+  tags                       = var.tags
 }

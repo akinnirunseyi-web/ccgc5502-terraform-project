@@ -7,6 +7,7 @@ resource "azurerm_managed_disk" "data_disk" {
   storage_account_type = "Premium_LRS"
   create_option        = "Empty"
   disk_size_gb         = var.disk_size_gb
+  zone                 = count.index < 3 ? tostring(count.index + 1) : null
   tags                 = var.tags
 }
 

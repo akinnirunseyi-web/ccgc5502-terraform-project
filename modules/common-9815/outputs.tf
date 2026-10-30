@@ -27,3 +27,8 @@ output "recovery_vault_id" {
   description = "ID of Recovery Services Vault"
   value       = azurerm_recovery_services_vault.recovery_vault.id
 }
+
+output "storage_account_primary_blob_endpoint" {
+  description = "Blob endpoint of the common storage account, used for VM boot diagnostics"
+  value       = azurerm_storage_account.storage.primary_blob_endpoint
+}

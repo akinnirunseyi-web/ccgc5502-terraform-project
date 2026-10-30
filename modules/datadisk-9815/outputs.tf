@@ -1,6 +1,6 @@
 output "datadisk_ids" {
   description = "IDs of Data Disks"
-  value       = {
+  value = {
     for i, disk in azurerm_managed_disk.data_disk : "disk_${i + 1}" => disk.id
   }
 }
